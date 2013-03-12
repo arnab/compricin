@@ -23,7 +23,12 @@ stores = {
     title_css_path: "a.vip",
     price_css_path: "*[itemprop=price]",
   },
-  infibeam: {},
+  infibeam: {
+    search_url: "http://www.infibeam.com/search?q=%s",
+    item_css_path: "#search_result li",
+    title_css_path: ".title",
+    price_css_path: ".price .price",
+  },
 }
 
 def fetch_and_display_prices_from(store_name, store_metadata, search_term)
