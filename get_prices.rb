@@ -4,63 +4,116 @@
 require 'mechanize'
 require 'pry'
 
-stores = {
-  flipkart: {
-    search_url: "http://www.flipkart.com/search/a/all?query=%s",
-    item_css_path: ".fk-product-thumb",
-    title_css_path: "a.fk-anchor-link",
-    price_css_path: ".fk-price .price",
-    max_items: 5,
-  },
-  junglee: {
-    search_url: "http://www.junglee.com/mn/search/junglee?field-keywords=%s",
-    item_css_path: ".result.product",
-    title_css_path: ".data a.title",
-    price_css_path: ".data .price",
-  },
-  ebay: {
-    search_url: "http://search.ebay.in/%s",
-    item_css_path: "#ResultSetItems *[itemprop=offers]",
-    title_css_path: "a.vip",
-    price_css_path: "*[itemprop=price]",
-  },
-  infibeam: {
-    search_url: "http://www.infibeam.com/search?q=%s",
-    item_css_path: "#search_result li",
-    title_css_path: ".title",
-    price_css_path: ".price .price",
-  },
-}
+class StoreConfig
+  CONFIG = {
+    flipkart: {
+      search_url: "http://www.flipkart.com/search/a/all?query=%s",
+      item_css_path: ".fk-product-thumb",
+      title_css_path: "a.fk-anchor-link",
+      price_css_path: ".fk-price .price",
+      max_items: 5,
+    },
+    junglee: {
+      search_url: "http://www.junglee.com/mn/search/junglee?field-keywords=%s",
+      item_css_path: ".result.product",
+      title_css_path: ".data a.title",
+      price_css_path: ".data .price",
+    },
+    ebay: {
+      search_url: "http://search.ebay.in/%s",
+      item_css_path: "#ResultSetItems *[itemprop=offers]",
+      title_css_path: "a.vip",
+      price_css_path: "*[itemprop=price]",
+    },
+    infibeam: {
+      search_url: "http://www.infibeam.com/search?q=%s",
+      item_css_path: "#search_result li",
+      title_css_path: ".title",
+      price_css_path: ".price .price",
+    },
+  }.freeze
 
-def fetch_and_display_prices_from(store_name, store_metadata, search_term)
-  search_url = store_metadata[:search_url]
-  search_url = search_url.gsub("%s", search_term)
-  puts "\n#{store_name}: #{search_url}"
+  def self.stores
+    CONFIG.keys
+  end
 
-  agent = Mechanize.new
-  page = agent.get(search_url)
-  search_for_item_and_price(page, store_metadata).each do |title, price|
-    puts sprintf("  %-100s    %10s", title, price)
+  def self.metadata_for(store)
+    CONFIG[store.to_sym]
   end
 end
 
-def search_for_item_and_price(page, max_items: 3, **store_metadata)
-  items = page.search(store_metadata[:item_css_path])
-  items.take(max_items).map do |item|
-    title = item.search(store_metadata[:title_css_path]).text.rstrip.lstrip
-    price = item.search(store_metadata[:price_css_path]).text.rstrip.lstrip
-    [title, price]
+class Scraper
+  def scrape(store, search_term)
+    search_url_template = StoreConfig.metadata_for(store)[:search_url]
+    search_url = search_url_template.gsub("%s", search_term)
+    puts "#{store}: #{search_url}"
+
+    begin
+      Mechanize.new.get(search_url)
+    rescue => ex
+      puts "  !!! Could not fetch: #{ex.class.name}: #{ex.message}"
+    end
+  end
+end
+
+class Parser
+  def initialize(store)
+    @store = store
+  end
+
+  def items(search_results_page, max_items: 3)
+    max_items = StoreConfig.metadata_for(@store)[:max_items] || max_items
+    item_css_path = StoreConfig.metadata_for(@store)[:item_css_path]
+    search_results_page.search(item_css_path).take(max_items)
+  end
+
+  def title(item)
+    parse_attribute(item, :title)
+  end
+
+  def price(item)
+    parse_attribute(item, :price)
+  end
+
+  private
+  def parse_attribute(item, attribute)
+    css_path_config_key = "#{attribute}_css_path".to_sym
+    css_path = StoreConfig.metadata_for(@store)[css_path_config_key]
+    item.search(css_path).text.rstrip.lstrip
+  end
+end
+
+SearchResult = Struct.new(:store, :title, :price)
+
+class Aggregator
+  def run(search_term)
+    puts "search for: #{search_term}"
+    results = []
+
+    StoreConfig.stores.each do |store|
+      search_results_page = Scraper.new.scrape(store, search_term)
+      next if search_results_page.nil?
+
+      parser = Parser.new(store)
+      results += parser.items(search_results_page).inject([]) do |collection, item|
+        collection << SearchResult.new(
+          store, parser.title(item), parser.price(item)
+        )
+      end
+    end
+    report(results)
+  end
+
+  def report(results)
+    format = "%-10s  %-90s  %10s"
+    puts "\nAggregated reults:"
+    puts sprintf(format, :store, :title, :price)
+    puts sprintf(format, '='*10, '='*90, '='*10)
+    results.flatten.each do |result|
+      puts sprintf(format, result.store, result.title, result.price)
+    end
   end
 end
 
 search_term = ARGV.join("+")
-search_term ||= "huggies"
-puts "search for: #{search_term}"
-stores.each_pair do |store, store_metadata|
-  next if store_metadata.empty?
-  begin
-    fetch_and_display_prices_from(store, store_metadata, search_term)
-  rescue => ex
-    puts "  Could not fetch: #{ex.class.name}: #{ex.message}"
-  end
-end
+Aggregator.new.run(search_term || "huggies")
