@@ -3,7 +3,11 @@
 # encoding: UTF-8
 require 'mechanize'
 require 'celluloid'
+require 'money'
 require 'pry'
+
+Money.default_currency = Money::Currency.new("INR")
+Money.assume_from_symbol = true
 
 class StoreConfig
   CONFIG = {
@@ -75,7 +79,8 @@ class Parser
   end
 
   def price(item)
-    parse_attribute(item, :price)
+    price_text = parse_attribute(item, :price)
+    Money.parse(price_text.gsub(/Rs.\s+/, "INR "))
   end
 
   private
@@ -113,12 +118,13 @@ class Aggregator
   end
 
   def report(results)
-    format = "%-10s  %-90s  %10s"
+    format = "%-10s  %-90s  %-11s"
     puts "\nAggregated reults:"
     puts sprintf(format, :store, :title, :price)
-    puts sprintf(format, '='*10, '='*90, '='*10)
+    puts sprintf(format, '='*10, '='*90, '='*11)
+    format = "%-10s  %-90s  %11s"
     results.flatten.each do |result|
-      puts sprintf(format, result.store, result.title, result.price)
+      puts sprintf(format, result.store, result.title, result.price.format)
     end
   end
 end

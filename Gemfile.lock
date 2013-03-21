@@ -14,6 +14,7 @@ GEM
     debugger-ruby_core_source (1.2.0)
     domain_name (0.5.7)
       unf (~> 0.0.3)
+    i18n (0.6.4)
     mechanize (2.5.1)
       domain_name (~> 0.5, >= 0.5.1)
       mime-types (~> 1.17, >= 1.17.2)
@@ -24,6 +25,8 @@ GEM
       webrobots (~> 0.0, >= 0.0.9)
     method_source (0.8.1)
     mime-types (1.21)
+    money (5.1.1)
+      i18n (~> 0.6.0)
     net-http-digest_auth (1.2.1)
     net-http-persistent (2.8)
     nokogiri (1.5.6)
@@ -48,5 +51,6 @@ PLATFORMS
 DEPENDENCIES
   celluloid (~> 0.13.0)
   mechanize (~> 2.5.1)
+  money (~> 5.1.1)
   pry
   pry-debugger
