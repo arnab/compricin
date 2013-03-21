@@ -123,7 +123,7 @@ class Aggregator
     puts sprintf(format, :store, :title, :price)
     puts sprintf(format, '='*10, '='*90, '='*11)
     format = "%-10s  %-90s  %11s"
-    results.flatten.each do |result|
+    results.flatten.sort_by(&:price).each do |result|
       puts sprintf(format, result.store, result.title, result.price.format)
     end
   end
