@@ -10,6 +10,7 @@ stores = {
     item_css_path: ".fk-product-thumb",
     title_css_path: "a.fk-anchor-link",
     price_css_path: ".fk-price .price",
+    max_items: 5,
   },
   junglee: {
     search_url: "http://www.junglee.com/mn/search/junglee?field-keywords=%s",
@@ -36,7 +37,6 @@ def fetch_and_display_prices_from(store_name, store_metadata, search_term)
   search_url = search_url.gsub("%s", search_term)
   puts "\n#{store_name}: #{search_url}"
 
-
   agent = Mechanize.new
   page = agent.get(search_url)
   search_for_item_and_price(page, store_metadata).each do |title, price|
@@ -44,9 +44,9 @@ def fetch_and_display_prices_from(store_name, store_metadata, search_term)
   end
 end
 
-def search_for_item_and_price(page, store_metadata)
+def search_for_item_and_price(page, max_items: 3, **store_metadata)
   items = page.search(store_metadata[:item_css_path])
-  items.map do |item|
+  items.take(max_items).map do |item|
     title = item.search(store_metadata[:title_css_path]).text.rstrip.lstrip
     price = item.search(store_metadata[:price_css_path]).text.rstrip.lstrip
     [title, price]
