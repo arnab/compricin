@@ -53,9 +53,14 @@ def search_for_item_and_price(page, max_items: 3, **store_metadata)
   end
 end
 
-search_term = ARGV[0] || "huggies"
+search_term = ARGV.join("+")
+search_term ||= "huggies"
 puts "search for: #{search_term}"
 stores.each_pair do |store, store_metadata|
   next if store_metadata.empty?
-  fetch_and_display_prices_from(store, store_metadata, search_term)
+  begin
+    fetch_and_display_prices_from(store, store_metadata, search_term)
+  rescue => ex
+    puts "  Could not fetch: #{ex.class.name}: #{ex.message}"
+  end
 end
