@@ -2,6 +2,7 @@
 
 # encoding: UTF-8
 require 'mechanize'
+require 'celluloid'
 require 'pry'
 
 class StoreConfig
@@ -43,13 +44,15 @@ class StoreConfig
 end
 
 class Scraper
+  include Celluloid
+
   def scrape(store, search_term)
     search_url_template = StoreConfig.metadata_for(store)[:search_url]
     search_url = search_url_template.gsub("%s", search_term)
     puts "#{store}: #{search_url}"
 
     begin
-      Mechanize.new.get(search_url)
+      [ store, Mechanize.new.get(search_url) ]
     rescue => ex
       puts "  !!! Could not fetch: #{ex.class.name}: #{ex.message}"
     end
@@ -90,8 +93,12 @@ class Aggregator
     puts "search for: #{search_term}"
     results = []
 
-    StoreConfig.stores.each do |store|
-      search_results_page = Scraper.new.scrape(store, search_term)
+    futures = StoreConfig.stores.map do |store|
+      Scraper.new.future(:scrape, store, search_term)
+    end
+    search_results_by_store = futures.map(&:value)
+
+    search_results_by_store.each do |store, search_results_page|
       next if search_results_page.nil?
 
       parser = Parser.new(store)
