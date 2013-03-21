@@ -93,8 +93,9 @@ class Aggregator
     puts "search for: #{search_term}"
     results = []
 
+    scraper_pool = Scraper.pool(size: 6)
     futures = StoreConfig.stores.map do |store|
-      Scraper.new.future(:scrape, store, search_term)
+      scraper_pool.future(:scrape, store, search_term)
     end
     search_results_by_store = futures.map(&:value)
 
