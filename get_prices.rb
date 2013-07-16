@@ -34,7 +34,7 @@ class StoreConfig
       search_url: "http://www.infibeam.com/search?q=%s",
       item_css_path: "#search_result li",
       title_css_path: ".title",
-      price_css_path: ".price .price",
+      price_css_path: ".price .normal",
     },
   }.freeze
 
