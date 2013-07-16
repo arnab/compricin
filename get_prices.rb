@@ -13,9 +13,9 @@ class StoreConfig
   CONFIG = {
     flipkart: {
       search_url: "http://www.flipkart.com/search/a/all?query=%s",
-      item_css_path: ".fk-product-thumb",
-      title_css_path: "a.fk-anchor-link",
-      price_css_path: ".fk-price .price",
+      item_css_path: ".browse-product",
+      title_css_path: "a.fk-display-block",
+      price_css_path: ".pu-price .pu-final",
       max_items: 5,
     },
     junglee: {
